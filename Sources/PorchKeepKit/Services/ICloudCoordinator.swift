@@ -30,7 +30,10 @@ final class ICloudCoordinator: ObservableObject {
         guard fm.fileExists(atPath: url.path) else {
             throw NSError(domain: "PorchKeep", code: 404, userInfo: [NSLocalizedDescriptionKey: "File missing: \(url.lastPathComponent)"])
         }
-        if let status = downloadStatus(for: url), status == .current {
+        // A nil status means the file is not an iCloud item at all (local
+        // storage mode) — it exists on disk, so there is nothing to download.
+        let status = downloadStatus(for: url)
+        if status == nil || status == .current {
             return
         }
         do { try fm.startDownloadingUbiquitousItem(at: url) }

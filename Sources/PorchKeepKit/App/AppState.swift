@@ -87,6 +87,10 @@ final class AppState: ObservableObject {
         logger.info("Event received: \(event.type.rawValue) device=\(event.serialNumber)")
         guard event.type != .stateChange else { return }
         guard event.isStart else { return }
+        guard settings.shouldCapture(event.type) else {
+            logger.info("Event type \(event.type.rawValue) is disabled in settings — not recording")
+            return
+        }
         await recorder.captureEvent(event, bridge: bridge)
     }
 
