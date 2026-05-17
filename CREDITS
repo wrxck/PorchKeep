@@ -1,0 +1,17 @@
+PorchKeep — credits & third-party software
+
+- eufy-security-ws  https://github.com/bropat/eufy-security-ws  (MIT-licensed)
+  Wrapper around eufy-security-client that exposes the eufy P2P protocol over
+  a local WebSocket. PorchKeep bundles this verbatim into its Resources/ and
+  spawns it as a child process at runtime.
+
+- ffmpeg  https://ffmpeg.org/  (LGPL/GPL)
+  Used unmodified to mux H.264 elementary streams into .mp4 and to remux to
+  HLS for live view. PorchKeep bundles a static ffmpeg binary copied from
+  Homebrew's distribution.
+
+- Node.js  https://nodejs.org/  (MIT-style)
+  Required to run eufy-security-ws. PorchKeep bundles the host's node binary.
+
+This app is for personal use. It is ad-hoc-signed and not distributed through
+the App Store.
