@@ -18,6 +18,9 @@ final class HLSServer {
 
     /// Starts serving `directory`; returns the playlist URL, or nil on failure.
     func start(directory: URL, playlist: String = "live.m3u8") async -> URL? {
+        // Drop any listener from a prior session before binding a new one.
+        listener?.cancel()
+        listener = nil
         self.directory = directory
         let params = NWParameters.tcp
         params.allowLocalEndpointReuse = true

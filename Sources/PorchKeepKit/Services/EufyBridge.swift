@@ -348,6 +348,13 @@ final class EufyBridge: ObservableObject {
     /// port. The bundled bridge needs ~1–2s to start; a single fixed sleep is
     /// unreliable, so the first received frame doubles as a readiness probe.
     private func connectWithRetry() async throws {
+        // Tear down any socket from a previous connection so reconnects don't
+        // strand a URLSession + WebSocket task (and its retained readLoop).
+        ws?.cancel(with: .goingAway, reason: nil)
+        ws = nil
+        session?.invalidateAndCancel()
+        session = nil
+
         let url = URL(string: "ws://127.0.0.1:\(settings.bridgePort)")!
         logger.info("Bridge WebSocket connecting: \(url)")
         var lastError: Error?
@@ -458,10 +465,20 @@ final class EufyBridge: ObservableObject {
                 _ = try await sendCommand(["command": "start_listening"])
                 self.state = .authenticating
                 _ = try await sendCommand(["command": "driver.connect"])
+                // On a WebSocket-only reconnect the bridge child is still
+                // running and the driver may already be connected — no fresh
+                // "connected" event will arrive, so check explicitly rather
+                // than sitting stuck in .authenticating forever.
+                let status = try await sendCommand(["command": "driver.is_connected"])
+                if (status["connected"] as? Bool) == true, state != .ready {
+                    state = .ready
+                    reconnectAttempts = 0
+                    logger.info("Driver already connected after handshake")
+                    try? await refreshDevices()
+                }
             } catch {
                 logger.error("Handshake failed: \(error)")
-                state = .error
-                lastError = error.localizedDescription
+                connectionFailed("handshake: \(error.localizedDescription)")
             }
         }
     }

@@ -122,13 +122,11 @@ final class BackupCoordinator: ObservableObject {
         guard fm.fileExists(atPath: event.mp4URL.path) else { return .missing }
 
         if inICloud {
-            // Uploaded to iCloud == safely backed up.
+            // Safely backed up only once the upload has fully finished.
             let values = try? event.mp4URL.resourceValues(forKeys: [.ubiquitousItemIsUploadedKey, .ubiquitousItemIsUploadingKey])
-            if let uploaded = values?.ubiquitousItemIsUploaded {
-                return uploaded ? .synced : .pending
-            }
-            // No ubiquity info — treat as pending until iCloud reports.
-            return .pending
+            let uploaded = values?.ubiquitousItemIsUploaded ?? false
+            let uploading = values?.ubiquitousItemIsUploading ?? false
+            return (uploaded && !uploading) ? .synced : .pending
         }
 
         if let backupDir {

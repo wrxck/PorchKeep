@@ -41,6 +41,11 @@ final class ICloudCoordinator: ObservableObject {
 
         let key = url.path
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            // A prior in-flight wait for the same file would otherwise be
+            // orphaned (its awaiter hangs forever); resolve it first.
+            if continuations[key] != nil {
+                finish(key: key, error: CancellationError())
+            }
             self.continuations[key] = cont
             let query = NSMetadataQuery()
             query.searchScopes = [NSMetadataQueryUbiquitousDataScope, NSMetadataQueryUbiquitousDocumentsScope]

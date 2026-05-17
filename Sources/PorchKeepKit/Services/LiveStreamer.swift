@@ -60,6 +60,7 @@ final class LiveStreamer: ObservableObject {
                 // AVPlayer needs HLS over HTTP, not file:// — serve the dir.
                 guard let httpURL = await httpServer.start(directory: dir) else {
                     lastError = "Could not start local HLS server"
+                    await stop(serial: serial, bridge: bridge)
                     return nil
                 }
                 self.playlistURL = httpURL
@@ -71,6 +72,9 @@ final class LiveStreamer: ObservableObject {
         if lastError == nil {
             lastError = "No video received — the doorbell may be asleep or unreachable."
         }
+        // Tear down ffmpeg + the bridge livestream instead of leaking them
+        // until the idle timer eventually fires.
+        await stop(serial: serial, bridge: bridge)
         logger.error("Live view: playlist did not become playable in time")
         return nil
     }

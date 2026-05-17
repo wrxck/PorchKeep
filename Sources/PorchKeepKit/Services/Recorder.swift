@@ -127,14 +127,9 @@ final class Recorder: ObservableObject {
             }
         }
 
-        // Pull frames until the stream ends, deadline hits, or pipe breaks.
-        var deadlineHit = false
+        // Pull frames until the stream ends or the pipe breaks.
         let captureTask = Task {
             for await frame in frames {
-                if Date() > deadline {
-                    deadlineHit = true
-                    break
-                }
                 if frame.kind == .video {
                     if videoCodec == nil { videoCodec = frame.codec }
                     if !writeBuffer(frame.data) { break }
@@ -146,17 +141,34 @@ final class Recorder: ObservableObject {
                 }
             }
         }
-        await captureTask.value
+        // Enforce the max clip length even if frames stop arriving (the
+        // doorbell can go quiet without ever ending the stream).
+        let deadlineTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(maxClipSeconds) * 1_000_000_000)
+            return !Task.isCancelled
+        }
+        var deadlineHit = false
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await captureTask.value; return false }
+            group.addTask { (await deadlineTask.value) == true }
+            if let first = await group.next() {
+                deadlineHit = first
+            }
+            captureTask.cancel()
+            deadlineTask.cancel()
+        }
 
         if deadlineHit {
             logger.info("Reached max clip length (\(maxClipSeconds)s), stopping")
-            await bridge.stopLivestream(serial: event.serialNumber)
         }
+        // Always stop the livestream — leaving it open keeps the doorbell
+        // awake and blocks the next recording.
+        await bridge.stopLivestream(serial: event.serialNumber)
 
         if pipeOpen {
             try? writeHandle.close()
         }
-        proc.waitUntilExit()
+        await waitForExit(proc, timeout: 10)
         errPipe.fileHandleForReading.readabilityHandler = nil
 
         let duration = Date().timeIntervalSince(started)
@@ -171,7 +183,7 @@ final class Recorder: ObservableObject {
         }
 
         // Thumbnail.
-        extractThumbnail(from: mp4URL, to: thumbURL)
+        await extractThumbnail(from: mp4URL, to: thumbURL)
 
         // Sidecar.
         let sidecar = EventSidecar(
@@ -203,7 +215,7 @@ final class Recorder: ObservableObject {
         backup.refresh(events: archive.events)
     }
 
-    private func extractThumbnail(from clip: URL, to thumb: URL) {
+    private func extractThumbnail(from clip: URL, to thumb: URL) async {
         let proc = Process()
         proc.executableURL = FFmpeg.binaryURL()
         proc.arguments = [
@@ -216,9 +228,22 @@ final class Recorder: ObservableObject {
         ]
         do {
             try proc.run()
-            proc.waitUntilExit()
+            await waitForExit(proc, timeout: 15)
         } catch {
             logger.warn("Thumbnail extraction failed: \(error)")
+        }
+    }
+
+    /// Awaits a child process without blocking the main actor; terminates it
+    /// if it overruns the timeout.
+    private func waitForExit(_ proc: Process, timeout: Double) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while proc.isRunning && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        if proc.isRunning {
+            logger.warn("ffmpeg overran \(Int(timeout))s — terminating")
+            proc.terminate()
         }
     }
 

@@ -84,6 +84,8 @@ struct SettingsView: View {
                             .lineLimit(1).truncationMode(.middle)
                     }
                 }
+                Text("Changing this only affects new recordings — existing clips stay in their current folder.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Divider()
                 Toggle("Keep a second backup copy", isOn: $settings.backupEnabled)
                 if settings.backupEnabled {
