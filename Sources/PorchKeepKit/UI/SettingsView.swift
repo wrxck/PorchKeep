@@ -168,6 +168,12 @@ struct SettingsView: View {
                         catch { appState.lastError = error.localizedDescription }
                     }
                 Button("View log…") { appState.presentLog() }
+                Divider()
+                Text("PorchKeep \(AppInfo.versionString)")
+                    .font(.caption.weight(.medium))
+                Text("Experimental build — pair-programmed with Claude Code, minimally tested. Docs: porchkeep.hesketh.pro")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         } label: { sectionLabel("System", "gearshape") }
     }

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PorchKeep — a free menu-bar NVR for a eufy doorbell</title>
+<meta name="description" content="PorchKeep is a free, self-hosted macOS menu-bar app that archives motion and ring events from a battery-powered eufy WiFi doorbell to iCloud Drive, with on-demand live view.">
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;🔔&lt;/text&gt;&lt;/svg&gt;">
+<style>
+  :root {
+    --bg: #14110e;
+    --panel: #1f1b16;
+    --panel-2: #272118;
+    --ink: #ece6db;
+    --muted: #9c9385;
+    --amber: #f0a818;
+    --amber-soft: #f0a81822;
+    --green: #5cc98a;
+    --red: #e8705a;
+    --border: #3a3328;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 6px;
+  }
+  pre {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  pre code { background: none; border: none; padding: 0; font-size: 0.85rem; line-height: 1.7; }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1c1812, var(--bg));
+  }
+  .hero { padding: 64px 0 52px; text-align: center; }
+  .glyph { font-size: 56px; line-height: 1; filter: drop-shadow(0 0 22px var(--amber-soft)); }
+  h1 { font-size: 2.6rem; letter-spacing: -0.02em; margin: 14px 0 6px; }
+  .tagline { color: var(--muted); font-size: 1.15rem; }
+  .badges { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    font-family: var(--mono); font-size: 0.78rem;
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 5px 12px; color: var(--muted);
+  }
+  .badge.v { color: var(--amber); border-color: #6a5520; background: var(--amber-soft); }
+  .badge.exp { color: var(--red); border-color: #5e3a32; background: #e8705a18; }
+  .cta { margin-top: 26px; }
+  .btn {
+    display: inline-block; background: var(--amber); color: #1a1407;
+    font-weight: 600; padding: 11px 22px; border-radius: 9px;
+  }
+  .btn:hover { text-decoration: none; opacity: 0.92; }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--border); margin-left: 8px; }
+
+  /* Warning */
+  .warning {
+    margin: 34px 0; border: 1px solid #5e3a32; background: #e8705a14;
+    border-radius: 11px; padding: 18px 20px;
+  }
+  .warning h3 { color: var(--red); font-size: 1rem; margin-bottom: 6px; }
+  .warning p { color: #d8c8be; font-size: 0.95rem; }
+
+  section { padding: 40px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+  h2 .num { color: var(--amber); font-family: var(--mono); font-size: 1rem; margin-right: 10px; }
+  section > .wrap > p { color: #cdc5b6; margin: 10px 0; }
+  h3 { font-size: 1.05rem; margin: 22px 0 6px; }
+
+  ul { margin: 12px 0 12px 22px; }
+  li { margin: 5px 0; color: #cdc5b6; }
+  li b { color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 11px; padding: 16px 18px;
+  }
+  .card h4 { font-size: 0.98rem; margin-bottom: 4px; }
+  .card p { font-size: 0.9rem; color: var(--muted); }
+  .card.no h4 { color: var(--muted); }
+
+  .diagram {
+    font-family: var(--mono); font-size: 0.8rem; line-height: 1.5;
+    color: var(--muted); white-space: pre; overflow-x: auto;
+  }
+  .diagram b { color: var(--amber); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.92rem; }
+  td, th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+
+  .step { display: flex; gap: 14px; margin: 14px 0; }
+  .step .n {
+    flex: none; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--amber-soft); border: 1px solid #6a5520; color: var(--amber);
+    font-family: var(--mono); font-size: 0.85rem; display: grid; place-items: center;
+  }
+  .step .t b { color: var(--ink); }
+  .step .t { color: #cdc5b6; font-size: 0.95rem; }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 34px 0 48px;
+    color: var(--muted); font-size: 0.88rem; text-align: center;
+  }
+  footer .pp { margin-top: 8px; }
+
+  @media (max-width: 620px) {
+    h1 { font-size: 2rem; }
+    .grid { grid-template-columns: 1fr; }
+    .hero { padding: 48px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <div class="glyph">🔔</div>
+    <h1>PorchKeep</h1>
+    <p class="tagline">A free, self-hosted menu-bar NVR for a battery-powered eufy doorbell.</p>
+    <div class="badges">
+      <span class="badge v">v0.1.0</span>
+      <span class="badge exp">experimental</span>
+      <span class="badge">macOS 14+</span>
+      <span class="badge">£0 / month</span>
+    </div>
+    <div class="cta">
+      <a class="btn" href="https://github.com/wrxck/PorchKeep">View on GitHub</a>
+      <a class="btn ghost" href="#install">Install</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warning">
+    <h3>⚠️ Experimental — v0.1.0</h3>
+    <p>PorchKeep was <b>pair-programmed with Claude Code</b> in a single extended session and has had
+    <b>very little real-world testing</b>. It talks to the eufy cloud through a reverse-engineered
+    bridge that eufy can break at any time. Treat it as a hobby project, not a security product —
+    do not rely on it as your only camera. Expect rough edges, and read the source before you trust it.</p>
+  </div>
+</div>
+
+<section id="what">
+  <div class="wrap">
+    <h2><span class="num">01</span>What it is</h2>
+    <p>A standalone, battery-powered eufy WiFi doorbell with no HomeBase can't be plugged into a
+    normal NVR — it has no RTSP/ONVIF feed, it sleeps to save battery, and it only speaks eufy's
+    proprietary P2P protocol. PorchKeep is a small macOS menu-bar app that bridges that gap.</p>
+    <p>It captures each motion and ring <b>event</b> as a clip into your existing iCloud Drive (or a
+    local folder), keeps a rolling 30-day archive, and gives you an on-demand live view — all for
+    <b>£0 a month</b>, with no extra hardware and no subscription. Think of it as a free,
+    event-clip-focused alternative to Scrypted NVR for one doorbell.</p>
+
+    <div class="grid">
+      <div class="card"><h4>✓ Event clip archive</h4><p>Every motion/ring event recorded to .mp4 with a thumbnail and JSON metadata.</p></div>
+      <div class="card"><h4>✓ iCloud or local</h4><p>Store in iCloud Drive (with upload-status reassurance) or any local folder, plus an optional backup copy.</p></div>
+      <div class="card"><h4>✓ On-demand live view</h4><p>Wake the doorbell and watch live; auto-stops after an idle timeout to spare the battery.</p></div>
+      <div class="card"><h4>✓ Rolling retention</h4><p>Clips older than your chosen window (7–90 days) are pruned automatically.</p></div>
+      <div class="card no"><h4>✗ Not 24/7 recording</h4><p>The doorbell is battery-powered — it physically cannot stream continuously.</p></div>
+      <div class="card no"><h4>✗ Not a phone replacement</h4><p>The eufy app still handles push notifications; PorchKeep is the archive.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2><span class="num">02</span>How it works</h2>
+    <p>Three components run on the same Mac. The app bundles everything it needs — you don't have to
+    install Node or ffmpeg yourself.</p>
+    <pre class="diagram">[ eufy doorbell ]
+       │  eufy P2P + push
+       ▼
+[ <b>eufy-security-ws</b> ]   Node bridge, a managed child process
+       │  local WebSocket
+       ▼
+[ <b>PorchKeep.app</b> ]      SwiftUI menu-bar agent
+       │  pipes H.264 buffers
+       ▼
+[ <b>ffmpeg</b> ]             bundled static binary
+       │
+       ├─►  .mp4 clip + thumbnail + JSON   →  iCloud Drive / local folder
+       └─►  HLS  →  loopback HTTP server  →  AVPlayer live view</pre>
+    <p>On a motion or ring event the app opens a livestream, pipes the incoming H.264 into ffmpeg,
+    and writes a finished clip into the archive. For live view it remuxes the same stream to HLS and
+    serves it to <code>AVPlayer</code> over a tiny localhost HTTP server.</p>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="wrap">
+    <h2><span class="num">03</span>Requirements</h2>
+    <table>
+      <tr><th>Need</th><th>Detail</th></tr>
+      <tr><td>Mac</td><td>macOS 14 (Sonoma) or later, Apple silicon or Intel</td></tr>
+      <tr><td>Doorbell</td><td>A battery-powered eufy WiFi doorbell on your network</td></tr>
+      <tr><td>eufy account</td><td>Ideally a <b>dedicated second account</b> with the doorbell shared to it (see setup)</td></tr>
+      <tr><td>Build tools</td><td><code>node</code> and <code>ffmpeg</code> on your <code>PATH</code> at build time — bundled into the app afterwards</td></tr>
+      <tr><td>Storage</td><td>iCloud Drive (event clips are small — roughly 5–30&nbsp;GB for 30 days) or any local folder</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2><span class="num">04</span>Install &amp; build</h2>
+    <p>PorchKeep is ad-hoc-signed and built from source — there is no notarised download.</p>
+    <pre><code># 1. clone
+git clone https://github.com/wrxck/PorchKeep.git
+cd PorchKeep
+
+# 2. bundle Node, eufy-security-ws and ffmpeg into Resources/
+./scripts/install-bridge.sh
+
+# 3. compile and package the .app
+./scripts/build-app.sh
+
+# 4. launch it
+open build/PorchKeep.app</code></pre>
+    <p>On first launch macOS Gatekeeper may complain because the app is ad-hoc-signed — right-click
+    the app and choose <b>Open</b>, or approve it in <b>System&nbsp;Settings → Privacy&nbsp;&amp;&nbsp;Security</b>.
+    PorchKeep then lives in the menu bar with no Dock icon.</p>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap">
+    <h2><span class="num">05</span>First-run setup</h2>
+    <p>A wizard walks you through it. The most important step is the first one:</p>
+    <div class="step"><div class="n">1</div><div class="t"><b>Use a dedicated eufy account.</b> Logging the bridge in can sign your phone's eufy app out. Create a second eufy account and share the doorbell to it as a Member/Admin from your main account.</div></div>
+    <div class="step"><div class="n">2</div><div class="t"><b>Enter credentials.</b> Stored only in the macOS Keychain — never written to a file.</div></div>
+    <div class="step"><div class="n">3</div><div class="t"><b>Captcha / 2FA.</b> The first login usually needs a captcha or a verification code; the wizard shows the image and the input.</div></div>
+    <div class="step"><div class="n">4</div><div class="t"><b>Pick the doorbell</b> once the bridge discovers your devices.</div></div>
+    <div class="step"><div class="n">5</div><div class="t"><b>Choose storage &amp; retention</b> — iCloud Drive or a local folder, and how many days to keep.</div></div>
+    <div class="step"><div class="n">6</div><div class="t"><b>Launch at login</b> — optional.</div></div>
+  </div>
+</section>
+
+<section id="troubleshooting">
+  <div class="wrap">
+    <h2><span class="num">06</span>Troubleshooting</h2>
+    <h3>Sign-in says "api ip request limit"</h3>
+    <p>eufy's cloud has temporarily rate-limited your IP after too many login attempts. Quit
+    PorchKeep, wait an hour or so, then try again — or sign in from a different network.</p>
+    <h3>The bridge keeps reconnecting</h3>
+    <p>eufy occasionally ships a firmware update that breaks the reverse-engineered client. Open the
+    log viewer (menu → View log…) to diagnose, and bump the pinned <code>eufy-security-ws</code>
+    version in <code>Resources/bridge/package.json</code> before re-running <code>install-bridge.sh</code>.</p>
+    <h3>No events appear</h3>
+    <p>The doorbell only emits while it's awake — walk in front of it. A <code>motion detected</code>
+    line in the log is your signal.</p>
+    <h3>A clip won't play</h3>
+    <p>If it's stored in iCloud it may have been offloaded; PorchKeep downloads it on demand before
+    playing — give it a moment.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><a href="https://github.com/wrxck/PorchKeep">github.com/wrxck/PorchKeep</a> · built on
+    <a href="https://github.com/bropat/eufy-security-ws">eufy-security-ws</a> and
+    <a href="https://ffmpeg.org">ffmpeg</a></p>
+    <p class="pp">PorchKeep v0.1.0 — experimental. Pair-programmed with
+    <a href="https://claude.com/claude-code">Claude Code</a>. Use at your own risk.</p>
+  </div>
+</footer>
+
+</body>
+</html>

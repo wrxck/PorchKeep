@@ -1,8 +1,17 @@
 # PorchKeep
 
+**v0.1.0 · experimental** — Docs: <https://porchkeep.hesketh.pro>
+
 A free, self-hosted, menu-bar NVR for a battery-powered eufy WiFi doorbell with
 no HomeBase. Captures motion / ring events to your iCloud Drive, keeps a rolling
 30-day archive, and offers on-demand live view.
+
+> ⚠️ **Experimental software.** PorchKeep was pair-programmed with
+> [Claude Code](https://claude.com/claude-code) in a single extended session and
+> has had **very little real-world testing**. It depends on a reverse-engineered
+> bridge to the eufy cloud that can break at any time. It is a hobby project, not
+> a security product — don't rely on it as your only camera, and read the source
+> before you trust it.
 
 > Personal-use, ad-hoc-signed Mac app. Built on top of the open-source
 > [`eufy-security-ws`](https://github.com/bropat/eufy-security-ws) bridge and a
